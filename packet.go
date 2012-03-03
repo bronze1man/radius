@@ -1,16 +1,19 @@
 package radius
+
 import (
 	"errors"
 	//"bytes"
-	"encoding/binary"
-	"fmt"
 	"crypto"
 	_ "crypto/md5"
+	"encoding/binary"
+	"fmt"
 	//"io"
-
+	"net"
 )
+
 const AUTH_PORT = 1812
 const ACCOUNTING_PORT = 1813
+const SECRET = "s3cr3t"
 
 type PacketCode uint8
 
@@ -89,47 +92,54 @@ const (
 )
 
 type Packet struct {
-	Code         PacketCode
-	Identifier   uint8
+	Code       PacketCode
+	Identifier uint8
 	//length uint16
 	Authenticator [16]byte
-	AVPs         []AVP
+	AVPs          []AVP
 }
 
 type AVP struct {
-	Type   AttributeType
-	Value  []byte
+	Type  AttributeType
+	Value []byte
 }
 
-func (p Packet)Encode(b []byte)(n int, ret []byte, err error){
+func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
 	b[0] = uint8(p.Code)
 	b[1] = uint8(p.Identifier)
-	copy(b[4:20],p.Authenticator[:])
+	copy(b[4:20], p.Authenticator[:])
 	written := 20
 	bb := b[20:]
-	for i,_ := range p.AVPs {
-		n,err = p.AVPs[i].Encode(bb)
+	for i, _ := range p.AVPs {
+		n, err = p.AVPs[i].Encode(bb)
 		written += n
 		if err != nil {
-			return written,nil, err
+			return written, nil, err
 		}
 		bb = bb[n:]
 		fmt.Println("written:", written)
 	}
 	//check if written too big.
-	binary.BigEndian.PutUint16(b[2:4],uint16(written))
-	return written,b,err
+	binary.BigEndian.PutUint16(b[2:4], uint16(written))
+
+	// fix up the authenticator
+	hasher := crypto.Hash(crypto.MD5).New()
+	hasher.Write(b[:written])
+	hasher.Write([]byte(SECRET))
+	copy(b[4:20], hasher.Sum(nil))
+
+	return written, b, err
 }
 
-func (a AVP)Encode(b []byte)(n int ,err error){
-	fullLen := len(a.Value)+2 //type and length
-	if fullLen > 255 || fullLen < 2{
-		return 0,errors.New("value too big for attribute")
+func (a AVP) Encode(b []byte) (n int, err error) {
+	fullLen := len(a.Value) + 2 //type and length
+	if fullLen > 255 || fullLen < 2 {
+		return 0, errors.New("value too big for attribute")
 	}
 	b[0] = uint8(a.Type)
-	b[1] =  uint8(fullLen)
-	copy(b[2:],a.Value)
-	return fullLen, err	
+	b[1] = uint8(fullLen)
+	copy(b[2:], a.Value)
+	return fullLen, err
 }
 
 func (a AttributeType) String() string {
@@ -274,8 +284,8 @@ func (p PacketCode) String() string {
 	return "unknown packet code"
 }
 
-func (p Packet) Has(attrType AttributeType) (bool) {
-	for i,_:= range p.AVPs {
+func (p *Packet) Has(attrType AttributeType) bool {
+	for i, _ := range p.AVPs {
 		if p.AVPs[i].Type == attrType {
 			return true
 		}
@@ -283,28 +293,28 @@ func (p Packet) Has(attrType AttributeType) (bool) {
 	return false
 }
 
-func (p Packet) Valid() bool {
+func (p *Packet) Valid() bool {
 	switch p.Code {
 	case AccessRequest:
 		if !(p.Has(NASIPAddress) || p.Has(NASIdentifier)) {
 			return false
 		}
 
-		if p.Has(CHAPPassword) && p.Has(UserPassword){
+		if p.Has(CHAPPassword) && p.Has(UserPassword) {
 			return false
 		}
 	case AccessAccept:
 		return true
 	case AccessReject:
-	return true	
+		return true
 	case AccountingRequest:
-	return true		
+		return true
 	case AccountingResponse:
-	return true
+		return true
 	case AccessChallenge:
-	return true
+		return true
 	case StatusServer:
-	return true
+		return true
 	case StatusClient:
 		return true
 	case Reserved:
@@ -313,21 +323,52 @@ func (p Packet) Valid() bool {
 	return true
 }
 
+func (p *Packet) Reply() *Packet {
+	pac := new(Packet)
+	pac.Authenticator = p.Authenticator
+	pac.Identifier = p.Identifier
+	return pac
+}
 
-
-func (p Packet)ResponseAuth(requestAuth [16]byte) []byte {
+func (p *Packet) ResponseAuth() []byte {
 	var buf [4096]byte
-	p.Authenticator = requestAuth
-	n,_,err := p.Encode(buf[:])
-	if err!= nil {
+	//p.Authenticator = requestAuth
+	n, _, err := p.Encode(buf[:])
+	if err != nil {
 		panic(err)
 	}
 	b := buf[:n]
-	b = append(b,"s3cr3t"...)
 	hasher := crypto.Hash(crypto.MD5).New()
 	hasher.Write(b)
+	hasher.Write([]byte("s3cr3t"))
 	copy(p.Authenticator[:], hasher.Sum(nil))
 	fmt.Println("md5 sum:", hasher.Sum(nil))
 	return hasher.Sum(nil)
-         //MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
+	//MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
+}
+
+func (p *Packet) SendAndWait(c net.PacketConn, addr net.Addr) (pac *Packet, err error) {
+	var buf [4096]byte
+	err = p.Send(c, addr)
+	if err != nil {
+		return nil, err
+	}
+	n, addr, err := c.ReadFrom(buf[:])
+	b := buf[:n]
+	pac = new(Packet)
+	pac.Code = PacketCode(b[0])
+	pac.Identifier = b[1]
+	copy(pac.Authenticator[:], b[4:20])
+	return pac, nil
+}
+
+func (p *Packet) Send(c net.PacketConn, addr net.Addr) error {
+	var buf [4096]byte
+	n, _, err := p.Encode(buf[:])
+	if err != nil {
+		return err
+	}
+
+	n, err = c.WriteTo(buf[:n], addr)
+	return err
 }

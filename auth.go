@@ -1,4 +1,3 @@
 package radius
 
-func pizza(){}
-
+func pizza() {}
