@@ -2,12 +2,10 @@ package radius
 
 import (
 	"errors"
-	//"bytes"
 	"crypto"
 	_ "crypto/md5"
 	"encoding/binary"
 	"fmt"
-	//"io"
 	"net"
 )
 
@@ -328,23 +326,6 @@ func (p *Packet) Reply() *Packet {
 	pac.Authenticator = p.Authenticator
 	pac.Identifier = p.Identifier
 	return pac
-}
-
-func (p *Packet) ResponseAuth() []byte {
-	var buf [4096]byte
-	//p.Authenticator = requestAuth
-	n, _, err := p.Encode(buf[:])
-	if err != nil {
-		panic(err)
-	}
-	b := buf[:n]
-	hasher := crypto.Hash(crypto.MD5).New()
-	hasher.Write(b)
-	hasher.Write([]byte("s3cr3t"))
-	copy(p.Authenticator[:], hasher.Sum(nil))
-	fmt.Println("md5 sum:", hasher.Sum(nil))
-	return hasher.Sum(nil)
-	//MD5(Code+ID+Length+RequestAuth+Attributes+Secret)
 }
 
 func (p *Packet) SendAndWait(c net.PacketConn, addr net.Addr) (pac *Packet, err error) {
