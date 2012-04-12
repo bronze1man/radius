@@ -4,6 +4,7 @@ import (
 	"github.com/jessta/radius"
 	"net"
 	"fmt"
+
 )
 
 func main() {
@@ -23,13 +24,27 @@ func main() {
 		}
 		p := b[:n]
 		pac := new(radius.Packet)
-		pac.Code = radius.PacketCode(p[0])
-		pac.Identifier = p[1]
-		copy(pac.Authenticator[:], p[4:20])
+		err = pac.Decode(p)
+		if err != nil {
+			panic(err)
+		}		
+		user:= pac.Attributes(radius.UserName)
+		pass := pac.Attributes(radius.UserPassword)
 
+		
 		npac := pac.Reply()
-		npac.Code = radius.AccessReject
+		if len(user) == 1 && len(pass) == 1{
+			if err := radius.Authenticate(string(user[0].Value),string(pass[0].Value)); err == nil {
+				npac.Code = radius.AccessAccept
+			} else {
+				npac.Code = radius.AccessReject
+				fmt.Println("user:",string(user[0].Value)," pass:",string(pass[0].Value))
+			}
+		}else {
+			npac.Code = radius.AccessReject
+				fmt.Println("user:",string(user[0].Value)," pass:",string(pass[0].Value))
 
+		}
 		npac.AVPs = append(npac.AVPs, radius.AVP{radius.ReplyMessage, []byte("you dick!")})
 		fmt.Println("request auth:", pac.Authenticator)
 		npac.Send(conn, addr)

@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"bytes"
 )
 
 const AUTH_PORT = 1812
@@ -291,6 +292,17 @@ func (p *Packet) Has(attrType AttributeType) bool {
 	return false
 }
 
+func (p *Packet) Attributes(attrType AttributeType) []*AVP {
+	ret := []*AVP(nil)
+	for i, _ := range p.AVPs {
+		if p.AVPs[i].Type == attrType {
+			ret = append(ret,&p.AVPs[i])
+		}
+	}
+	return ret
+	
+}
+
 func (p *Packet) Valid() bool {
 	switch p.Code {
 	case AccessRequest:
@@ -301,6 +313,7 @@ func (p *Packet) Valid() bool {
 		if p.Has(CHAPPassword) && p.Has(UserPassword) {
 			return false
 		}
+		return true
 	case AccessAccept:
 		return true
 	case AccessReject:
@@ -352,4 +365,47 @@ func (p *Packet) Send(c net.PacketConn, addr net.Addr) error {
 
 	n, err = c.WriteTo(buf[:n], addr)
 	return err
+}
+
+func (p *Packet) Decode(buf []byte) error {
+	p.Code = PacketCode(buf[0])
+        p.Identifier = buf[1]
+        copy(p.Authenticator[:], buf[4:20])
+	//read attributes
+	b := buf[20:]
+	for len(b) >= 2 {
+		attr := AVP{}
+		attr.Type = AttributeType(b[0])
+		length := uint8(b[1])
+		if int(length) > len(b) {
+			return errors.New("invalid length")
+		}
+		attr.Value = append(attr.Value,b[2:length]...)
+		
+	
+		if attr.Type == UserPassword {
+			DecodePassword(p,&attr)
+		}
+		p.AVPs = append(p.AVPs,attr)
+		b = b[length:]
+	}
+	return nil
+}
+
+func DecodePassword(p *Packet, a *AVP){
+	//Decode password. XOR against md5(SECRET+Authenticator)
+		secAuth := append([]byte(nil), []byte(SECRET)...)
+		secAuth = append(secAuth, p.Authenticator[:]...)
+		m := crypto.Hash(crypto.MD5).New()
+		m.Write(secAuth)
+		md := m.Sum(nil)
+		pass := a.Value
+		if len(pass) == 16 {
+			for i:=0;i<len(pass);i++ {
+				pass[i] = pass[i] ^ md[i] 
+			}
+			a.Value = bytes.TrimRight(pass, string([]rune{0}))
+		} else {
+			panic("not implemented for password > 16")
+		}
 }

@@ -16,14 +16,18 @@ type Validation struct {
 	Kind AttributeDataType
 	MinLength int 
 	MaxLength int //if < 0 unlimited 
+	Decode func([]byte)([]byte,error)
 }
 
+func (v *Validation) Validate(){}
+
+
 var validation  = map[AttributeType]Validation {
-	UserName: {STRING,1,UNLIMITED},
-	UserPassword           :{STRING,16,128},
-	CHAPPassword           :{STRING,17,17},
-	NASIPAddress           : {ADDRESS,4,4},
-	NASPort : {VALUE,4,4},
+	UserName: {STRING,1,UNLIMITED,nil},
+	UserPassword           :{STRING,16,128,nil},
+	CHAPPassword           :{STRING,17,17,nil},
+	NASIPAddress           : {ADDRESS,4,4,nil},
+	NASPort : {VALUE,4,4,nil},
 	ServiceType            :{},
 	FramedProtocol         :{},
 	FramedIPAddress        :{},
