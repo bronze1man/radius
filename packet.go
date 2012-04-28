@@ -5,14 +5,10 @@ import (
 	"crypto"
 	_ "crypto/md5"
 	"encoding/binary"
-	"fmt"
 	"net"
-	"bytes"
-)
+	"time"
 
-const AUTH_PORT = 1812
-const ACCOUNTING_PORT = 1813
-const SECRET = "s3cr3t"
+)
 
 type PacketCode uint8
 
@@ -31,6 +27,7 @@ const (
 type AttributeType uint8
 
 const (
+	//start rfc2865
 	_                                    = iota //drop the zero
 	UserName               AttributeType = iota
 	UserPassword           AttributeType = iota
@@ -83,17 +80,131 @@ const (
 	AcctTerminateCause     AttributeType = iota
 	AcctMultiSessionId     AttributeType = iota
 	AcctLinkCount          AttributeType = iota
-	// 52 to 59 reserved for accounting)
+		AcctInputGigawords AttributeType = iota
+	AcctOutputGigawords AttributeType = iota
+	Unassigned1	AttributeType = iota
+	EventTimestamp	AttributeType = iota
+	EgressVLANID	AttributeType = iota
+	IngressFilters	AttributeType = iota
+	EgressVLANName	AttributeType = iota
+	UserPriorityTable	AttributeType = iota
 	CHAPChallenge AttributeType = 60
 	NASPortType   AttributeType = 61
 	PortLimit     AttributeType = 62
-	LoginLATPort  AttributeType = 63
+	LoginLATPort  AttributeType = 63 
+	//end rfc2865
+	TunnelType	AttributeType = iota
+	TunnelMediumType AttributeType = iota
+	TunnelClientEndpoint	AttributeType = iota
+	TunnelServerEndpoint	AttributeType = iota
+	AcctTunnelConnection	AttributeType = iota
+	TunnelPassword	AttributeType = iota
+	ARAPPassword	AttributeType = iota
+	ARAPFeatures	AttributeType = iota
+	ARAPZoneAccess	AttributeType = iota
+	ARAPSecurity	AttributeType = iota
+	ARAPSecurityData	AttributeType = iota
+	PasswordRetry	AttributeType = iota
+	Prompt	AttributeType = iota
+	ConnectInfo	AttributeType = iota
+	ConfigurationToken	AttributeType = iota
+	EAPMessage AttributeType = iota
+	MessageAuthenticator AttributeType = iota
+	TunnelPrivateGroupID AttributeType = iota
+	TunnelAssignmentID	AttributeType = iota
+	TunnelPreference	AttributeType = iota
+	ARAPChallengeResponse	AttributeType = iota
+	AcctInterimInterval	AttributeType = iota
+	AcctTunnelPacketsLost	AttributeType = iota
+	NASPortId	AttributeType = iota
+	FramedPool	AttributeType = iota
+	CUI	AttributeType = iota
+	TunnelClientAuthID	AttributeType = iota
+	TunnelServerAuthID	AttributeType = iota
+	NASFilterRule	AttributeType = iota
+	Unassigned	AttributeType = iota
+	OriginatingLineInfo	AttributeType = iota
+	NASIPv6Address	AttributeType = iota
+	FramedInterfaceId	AttributeType = iota
+	FramedIPv6Prefix	AttributeType = iota
+	LoginIPv6Host	AttributeType = iota
+	FramedIPv6Route	AttributeType = iota
+	FramedIPv6Pool	AttributeType = iota
+	ErrorCause 	AttributeType = iota
+	EAPKeyName	AttributeType = iota
+	DigestResponse	AttributeType = iota
+	DigestRealm	AttributeType = iota
+	DigestNonce	AttributeType = iota
+	DigestResponseAuth	AttributeType = iota
+	DigestNextnonce	AttributeType = iota
+	DigestMethod	AttributeType = iota
+	DigestURI	AttributeType = iota
+	DigestQop	AttributeType = iota
+	DigestAlgorithm	AttributeType = iota
+	DigestEntityBodyHash	AttributeType = iota
+	DigestCNonce	AttributeType = iota
+	DigestNonceCount	AttributeType = iota
+	DigestUsername	AttributeType = iota
+	DigestOpaque	AttributeType = iota
+	DigestAuthParam	AttributeType = iota
+	DigestAKAAuts	AttributeType = iota
+	DigestDomain	AttributeType = iota
+	DigestStale	AttributeType = iota
+	DigestHA1	AttributeType = iota
+	SIPAOR	AttributeType = iota
+	DelegatedIPv6Prefix	AttributeType = iota
+	MIP6FeatureVector	AttributeType = iota
+	MIP6HomeLinkPrefix	AttributeType = iota
+	OperatorName	AttributeType = iota
+	LocationInformation	AttributeType = iota
+	LocationData	AttributeType = iota
+	BasicLocationPolicyRules	AttributeType = iota
+	ExtendedLocationPolicyRules	AttributeType = iota
+	LocationCapable	AttributeType = iota
+	RequestedLocationInfo	AttributeType = iota
+	FramedManagementProtocol	AttributeType = iota
+	ManagementTransportProtection	AttributeType = iota
+	ManagementPolicyId	AttributeType = iota
+	ManagementPrivilegeLevel	AttributeType = iota
+	PKMSSCert	AttributeType = iota
+	PKMCACert	AttributeType = iota
+	PKMConfigSettings	AttributeType = iota
+	PKMCryptosuiteList	AttributeType = iota
+	PKMSAID	AttributeType = iota
+	PKMSADescriptor	AttributeType = iota
+	PKMAuthKey	AttributeType = iota
+	DSLiteTunnelName	AttributeType = iota
+	MobileNodeIdentifier	AttributeType = iota
+	ServiceSelection	AttributeType = iota
+	PMIP6HomeLMAIPv6Address	AttributeType = iota
+	PMIP6VisitedLMAIPv6Address	AttributeType = iota
+	PMIP6HomeLMAIPv4Address	AttributeType = iota
+	PMIP6VisitedLMAIPv4Address	AttributeType = iota
+	PMIP6HomeHNPrefix	AttributeType = iota
+	PMIP6VisitedHNPrefix	AttributeType = iota
+	PMIP6HomeInterfaceID	AttributeType = iota
+	PMIP6VisitedInterfaceID	AttributeType = iota
+	PMIP6HomeIPv4HoA	AttributeType = iota
+	PMIP6VisitedIPv4HoA	AttributeType = iota
+	PMIP6HomeDHCP4ServerAddress	AttributeType = iota
+	PMIP6VisitedDHCP4ServerAddress	AttributeType = iota
+	PMIP6HomeDHCP6ServerAddress	AttributeType = iota
+	PMIP6VisitedDHCP6ServerAddress	AttributeType = iota
+	UnassignedStart	AttributeType = 161
+	UnassignedEnd AttributeType = 191
+
+	ExperimentalStart AttributeType= 192
+	ExperimentalEnd AttributeType= 223
+	ImplementationSpecificStart AttributeType= 224
+	ImplementationSpecificEnd AttributeType = 240
+	ReservedStart AttributeType= 241
+	ReservedEnd AttributeType= 254
 )
 
 type Packet struct {
+	server *Server
 	Code       PacketCode
 	Identifier uint8
-	//length uint16
 	Authenticator [16]byte
 	AVPs          []AVP
 }
@@ -101,6 +212,10 @@ type Packet struct {
 type AVP struct {
 	Type  AttributeType
 	Value []byte
+	text string
+	address net.Addr
+	integer uint32
+	time time.Time
 }
 
 func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
@@ -116,7 +231,6 @@ func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
 			return written, nil, err
 		}
 		bb = bb[n:]
-		fmt.Println("written:", written)
 	}
 	//check if written too big.
 	binary.BigEndian.PutUint16(b[2:4], uint16(written))
@@ -124,7 +238,7 @@ func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
 	// fix up the authenticator
 	hasher := crypto.Hash(crypto.MD5).New()
 	hasher.Write(b[:written])
-	hasher.Write([]byte(SECRET))
+	hasher.Write([]byte(p.server.secret))
 	copy(b[4:20], hasher.Sum(nil))
 
 	return written, b, err
@@ -289,7 +403,7 @@ func (p *Packet) Has(attrType AttributeType) bool {
 			return true
 		}
 	}
-	return false
+	return false	
 }
 
 func (p *Packet) Attributes(attrType AttributeType) []*AVP {
@@ -338,6 +452,7 @@ func (p *Packet) Reply() *Packet {
 	pac := new(Packet)
 	pac.Authenticator = p.Authenticator
 	pac.Identifier = p.Identifier
+	pac.server = p.server	
 	return pac
 }
 
@@ -381,31 +496,13 @@ func (p *Packet) Decode(buf []byte) error {
 			return errors.New("invalid length")
 		}
 		attr.Value = append(attr.Value,b[2:length]...)
-		
-	
-		if attr.Type == UserPassword {
-			DecodePassword(p,&attr)
-		}
+		/*validator := validation[attr.Type]
+		if err := validator.Validate(p,&attr); err != nil {
+			return err
+		}*/
 		p.AVPs = append(p.AVPs,attr)
 		b = b[length:]
 	}
 	return nil
 }
 
-func DecodePassword(p *Packet, a *AVP){
-	//Decode password. XOR against md5(SECRET+Authenticator)
-		secAuth := append([]byte(nil), []byte(SECRET)...)
-		secAuth = append(secAuth, p.Authenticator[:]...)
-		m := crypto.Hash(crypto.MD5).New()
-		m.Write(secAuth)
-		md := m.Sum(nil)
-		pass := a.Value
-		if len(pass) == 16 {
-			for i:=0;i<len(pass);i++ {
-				pass[i] = pass[i] ^ md[i] 
-			}
-			a.Value = bytes.TrimRight(pass, string([]rune{0}))
-		} else {
-			panic("not implemented for password > 16")
-		}
-}
