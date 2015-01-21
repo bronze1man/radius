@@ -1,36 +1,43 @@
 package radius
+
 import (
+	"fmt"
 	"net"
-	"log"
 )
+
 const AUTH_PORT = 1812
 const ACCOUNTING_PORT = 1813
 
 type Server struct {
-	addr string
-	secret string
-	services map[string]Service
+	addr    string
+	secret  string
+	service Service
+	//services map[string]Service
 }
 
 type Service interface {
-    Authenticate(request *Packet) (*Packet,error)
+	RadiusHandle(request *Packet) *Packet
 }
 
-type PasswordService struct {}
+type PasswordService struct{}
 
-func(p *PasswordService)Authenticate(request *Packet) (*Packet,error){
+func (p *PasswordService) Authenticate(request *Packet) (*Packet, error) {
 	npac := request.Reply()
 	npac.Code = AccessReject
-	npac.AVPs = append(npac.AVPs, AVP{Type:ReplyMessage, Value:[]byte("you dick!")})
-	return npac,nil
+	npac.AVPs = append(npac.AVPs, AVP{Type: ReplyMessage, Value: []byte("you dick!")})
+	return npac, nil
 }
-func NewServer(addr string, secret string) *Server {
-	return &Server{addr,secret,make(map[string]Service)}
+func NewServer(addr string, secret string, service Service) *Server {
+	return &Server{addr: addr,
+		secret:  secret,
+		service: service}
 }
 
-func (s *Server) RegisterService(serviceAddr string,  handler Service){
-	s.services[serviceAddr] = handler	
+/*
+func (s *Server) RegisterService(serviceAddr string, handler Service) {
+	s.services[serviceAddr] = handler
 }
+*/
 
 func (s *Server) ListenAndServe() error {
 	addr, err := net.ResolveUDPAddr("udp", s.addr)
@@ -41,43 +48,44 @@ func (s *Server) ListenAndServe() error {
 	if err != nil {
 		return err
 	}
-	var b [512]byte
+	b := make([]byte, 4096)
 	for {
-		n, addr, err := conn.ReadFrom(b[:])
+		n, addr, err := conn.ReadFrom(b)
 		if err != nil {
 			return err
 		}
-	
+
 		p := b[:n]
-		pac := &Packet{server:s}
+		pac := &Packet{server: s}
 		err = pac.Decode(p)
 		if err != nil {
-			return err
+			fmt.Println("[pac.Decode]", err)
+			break
 		}
-		
-		ips:= pac.Attributes(NASIPAddress)
-		
-		if len(ips) != 1 {
-			continue
-		}
-	
-		ss := net.IP(ips[0].Value[0:4])
-		
-		service, ok := s.services[ss.String()]
-		if !ok {
-			log.Println("recieved request for unknown service: ",ss)
-			continue
-		
-			//reject
-		}
-		npac,err := service.Authenticate(pac)
-		if err != nil {
-			return err
-		}
+
+		/*
+			ips := pac.Attributes(NASIPAddress)
+
+			if len(ips) != 1 {
+				continue
+			}
+
+			ss := net.IP(ips[0].Value[0:4])
+
+			service, ok := s.services[ss.String()]
+			if !ok {
+				log.Println("recieved request for unknown service: ", ss)
+				continue
+
+				//reject
+			}
+		*/
+
+		npac := s.service.RadiusHandle(pac)
 		err = npac.Send(conn, addr)
 		if err != nil {
-			return err
+			fmt.Println("[npac.Send]", err)
 		}
 	}
 	return nil
-}	
+}
