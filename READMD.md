@@ -8,8 +8,8 @@ a golang radius library
 This project forks from https://github.com/jessta/radius
 
 ### document
-http://godoc.org/github.com/bronze1man/radius
-http://en.wikipedia.org/wiki/RADIUS
+* http://godoc.org/github.com/bronze1man/radius
+* http://en.wikipedia.org/wiki/RADIUS
 
 
 ### example
@@ -48,7 +48,7 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 	}
 }
 
-func RunVpnAccount() {
+func main() {
 	s := radius.NewServer(":1812", "sEcReT", radiusService{})
 	fmt.Println("waiting for packets...")
 	err := s.ListenAndServe()
