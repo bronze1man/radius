@@ -48,44 +48,26 @@ func (s *Server) ListenAndServe() error {
 	if err != nil {
 		return err
 	}
-	b := make([]byte, 4096)
+
 	for {
+		b := make([]byte, 4096)
 		n, addr, err := conn.ReadFrom(b)
 		if err != nil {
 			return err
 		}
-
-		p := b[:n]
-		pac := &Packet{server: s}
-		err = pac.Decode(p)
-		if err != nil {
-			fmt.Println("[pac.Decode]", err)
-			break
-		}
-
-		/*
-			ips := pac.Attributes(NASIPAddress)
-
-			if len(ips) != 1 {
-				continue
+		go func(p []byte, addr net.Addr) {
+			pac, err := DecodePacket(s.secret, p)
+			if err != nil {
+				fmt.Println("[pac.Decode]", err)
+				return
 			}
 
-			ss := net.IP(ips[0].Value[0:4])
-
-			service, ok := s.services[ss.String()]
-			if !ok {
-				log.Println("recieved request for unknown service: ", ss)
-				continue
-
-				//reject
+			npac := s.service.RadiusHandle(pac)
+			err = npac.Send(conn, addr)
+			if err != nil {
+				fmt.Println("[npac.Send]", err)
 			}
-		*/
-
-		npac := s.service.RadiusHandle(pac)
-		err = npac.Send(conn, addr)
-		if err != nil {
-			fmt.Println("[npac.Send]", err)
-		}
+		}(b[:n], addr)
 	}
 	return nil
 }

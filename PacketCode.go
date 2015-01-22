@@ -1,5 +1,9 @@
 package radius
 
+import (
+	"strconv"
+)
+
 type PacketCode uint8
 
 const (
@@ -35,5 +39,5 @@ func (p PacketCode) String() string {
 	case Reserved:
 		return "Reserved"
 	}
-	return "unknown packet code"
+	return "unknown packet code " + strconv.Itoa(int(p))
 }

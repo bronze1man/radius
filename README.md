@@ -10,7 +10,6 @@ This project forks from https://github.com/jessta/radius
 * http://godoc.org/github.com/bronze1man/radius
 * http://en.wikipedia.org/wiki/RADIUS
 
-
 ### example
 ```go
 package main
@@ -56,5 +55,13 @@ func main() {
 	}
 }
 ```
+
+### implemented
+* a radius server can handle AccessRequest request
+* a radius server can handle AccountingRequest request
+
+### notice
+* A radius client has not been implement.
+* It works , but it is not stable.
 
 

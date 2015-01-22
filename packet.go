@@ -11,14 +11,14 @@ import (
 )
 
 type Packet struct {
-	server        *Server
+	Secret        string
 	Code          PacketCode
 	Identifier    uint8
 	Authenticator [16]byte
 	AVPs          []AVP
 }
 
-func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
+func (p *Packet) Encode(b []byte) (n int, err error) {
 	b[0] = uint8(p.Code)
 	b[1] = uint8(p.Identifier)
 	copy(b[4:20], p.Authenticator[:])
@@ -28,7 +28,7 @@ func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
 		n, err = p.AVPs[i].Encode(bb)
 		written += n
 		if err != nil {
-			return written, nil, err
+			return written, err
 		}
 		bb = bb[n:]
 	}
@@ -36,15 +36,17 @@ func (p *Packet) Encode(b []byte) (n int, ret []byte, err error) {
 	binary.BigEndian.PutUint16(b[2:4], uint16(written))
 
 	// fix up the authenticator
+	// handle request and response stuff.
+	// here only handle response part.
 	hasher := crypto.Hash(crypto.MD5).New()
 	hasher.Write(b[:written])
-	hasher.Write([]byte(p.server.secret))
+	hasher.Write([]byte(p.Secret))
 	copy(b[4:20], hasher.Sum(nil))
 
-	return written, b, err
+	return written, err
 }
 
-func (p *Packet) Has(attrType AttributeType) bool {
+func (p *Packet) HasAVP(attrType AttributeType) bool {
 	for i, _ := range p.AVPs {
 		if p.AVPs[i].Type == attrType {
 			return true
@@ -53,6 +55,7 @@ func (p *Packet) Has(attrType AttributeType) bool {
 	return false
 }
 
+/*
 func (p *Packet) Attributes(attrType AttributeType) []*AVP {
 	ret := []*AVP(nil)
 	for i, _ := range p.AVPs {
@@ -62,6 +65,7 @@ func (p *Packet) Attributes(attrType AttributeType) []*AVP {
 	}
 	return ret
 }
+*/
 
 //get one avp
 func (p *Packet) GetAVP(attrType AttributeType) AVP {
@@ -73,6 +77,7 @@ func (p *Packet) GetAVP(attrType AttributeType) AVP {
 	return AVP{}
 }
 
+/*
 func (p *Packet) Valid() bool {
 	switch p.Code {
 	case AccessRequest:
@@ -103,33 +108,19 @@ func (p *Packet) Valid() bool {
 	}
 	return true
 }
+*/
 
 func (p *Packet) Reply() *Packet {
 	pac := new(Packet)
 	pac.Authenticator = p.Authenticator
 	pac.Identifier = p.Identifier
-	pac.server = p.server
+	pac.Secret = p.Secret
 	return pac
-}
-
-func (p *Packet) SendAndWait(c net.PacketConn, addr net.Addr) (pac *Packet, err error) {
-	var buf [4096]byte
-	err = p.Send(c, addr)
-	if err != nil {
-		return nil, err
-	}
-	n, addr, err := c.ReadFrom(buf[:])
-	b := buf[:n]
-	pac = new(Packet)
-	pac.Code = PacketCode(b[0])
-	pac.Identifier = b[1]
-	copy(pac.Authenticator[:], b[4:20])
-	return pac, nil
 }
 
 func (p *Packet) Send(c net.PacketConn, addr net.Addr) error {
 	var buf [4096]byte
-	n, _, err := p.Encode(buf[:])
+	n, err := p.Encode(buf[:])
 	if err != nil {
 		return err
 	}
@@ -138,7 +129,8 @@ func (p *Packet) Send(c net.PacketConn, addr net.Addr) error {
 	return err
 }
 
-func (p *Packet) Decode(buf []byte) error {
+func DecodePacket(Secret string, buf []byte) (p *Packet, err error) {
+	p = &Packet{Secret: Secret}
 	p.Code = PacketCode(buf[0])
 	p.Identifier = buf[1]
 	copy(p.Authenticator[:], buf[4:20])
@@ -147,7 +139,7 @@ func (p *Packet) Decode(buf []byte) error {
 	for len(b) >= 2 {
 		length := uint8(b[1])
 		if int(length) > len(b) {
-			return errors.New("invalid length")
+			return nil, errors.New("invalid length")
 		}
 		attr := AVP{}
 		attr.Type = AttributeType(b[0])
@@ -155,7 +147,7 @@ func (p *Packet) Decode(buf []byte) error {
 		p.AVPs = append(p.AVPs, attr)
 		b = b[length:]
 	}
-	return nil
+	return p, nil
 }
 
 func (p *Packet) String() string {
@@ -176,7 +168,7 @@ func (p *Packet) GetUsername() (username string) {
 	return avp.Decode(p).(string)
 }
 func (p *Packet) GetPassword() (password string) {
-	avp := p.GetAVP(UserName)
+	avp := p.GetAVP(UserPassword)
 	if avp.IsZero() {
 		return ""
 	}
@@ -184,9 +176,51 @@ func (p *Packet) GetPassword() (password string) {
 }
 
 func (p *Packet) GetNasIpAddress() (ip net.IP) {
-	avp := p.GetAVP(UserName)
+	avp := p.GetAVP(NASIPAddress)
 	if avp.IsZero() {
 		return nil
 	}
 	return avp.Decode(p).(net.IP)
+}
+
+func (p *Packet) GetAcctStatusType() AcctStatusTypeEnum {
+	avp := p.GetAVP(AcctStatusType)
+	if avp.IsZero() {
+		return AcctStatusTypeEnum(0)
+	}
+	return avp.Decode(p).(AcctStatusTypeEnum)
+}
+
+func (p *Packet) GetAcctSessionId() string {
+	avp := p.GetAVP(AcctSessionId)
+	if avp.IsZero() {
+		return ""
+	}
+	return avp.Decode(p).(string)
+}
+
+func (p *Packet) GetAcctTotalOutputOctets() uint64 {
+	out := uint64(0)
+	avp := p.GetAVP(AcctOutputOctets)
+	if !avp.IsZero() {
+		out += uint64(avp.Decode(p).(uint32))
+	}
+	avp = p.GetAVP(AcctOutputGigawords)
+	if !avp.IsZero() {
+		out += uint64(avp.Decode(p).(uint32))*2 ^ 32
+	}
+	return out
+}
+
+func (p *Packet) GetAcctTotalInputOctets() uint64 {
+	out := uint64(0)
+	avp := p.GetAVP(AcctInputOctets)
+	if !avp.IsZero() {
+		out += uint64(avp.Decode(p).(uint32))
+	}
+	avp = p.GetAVP(AcctInputGigawords)
+	if !avp.IsZero() {
+		out += uint64(avp.Decode(p).(uint32))*2 ^ 32
+	}
+	return out
 }

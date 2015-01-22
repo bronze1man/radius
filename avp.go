@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 )
 
@@ -100,12 +101,12 @@ func (s avpPasswordt) Value(p *Packet, a AVP) interface{} {
 		return ""
 	}
 	//Decode password. XOR against md5(p.server.secret+Authenticator)
-	secAuth := append([]byte(nil), []byte(p.server.secret)...)
+	secAuth := append([]byte(nil), []byte(p.Secret)...)
 	secAuth = append(secAuth, p.Authenticator[:]...)
 	m := crypto.Hash(crypto.MD5).New()
 	m.Write(secAuth)
 	md := m.Sum(nil)
-	pass := a.Value
+	pass := append([]byte(nil), a.Value...)
 	if len(pass) == 16 {
 		for i := 0; i < len(pass); i++ {
 			pass[i] = pass[i] ^ md[i]
@@ -120,12 +121,12 @@ func (s avpPasswordt) String(p *Packet, a AVP) string {
 	return s.Value(p, a).(string)
 }
 
-type avpUint32Enum []string
+type avpUint32EnumList []string
 
-func (s avpUint32Enum) Value(p *Packet, a AVP) interface{} {
+func (s avpUint32EnumList) Value(p *Packet, a AVP) interface{} {
 	return uint32(binary.BigEndian.Uint32(a.Value))
 }
-func (s avpUint32Enum) String(p *Packet, a AVP) string {
+func (s avpUint32EnumList) String(p *Packet, a AVP) string {
 	number := int(binary.BigEndian.Uint32(a.Value))
 	if number > len(s) {
 		return "unknow " + strconv.Itoa(number)
@@ -135,4 +136,51 @@ func (s avpUint32Enum) String(p *Packet, a AVP) string {
 		return "unknow " + strconv.Itoa(number)
 	}
 	return out
+}
+
+type avpUint32Enum struct {
+	t interface{} // t should from a uint32 type like AcctStatusTypeEnum
+}
+
+func (s avpUint32Enum) Value(p *Packet, a AVP) interface{} {
+	value := reflect.ValueOf(s)
+	value.SetUint(uint64(binary.BigEndian.Uint32(a.Value)))
+	return value.Interface()
+}
+func (s avpUint32Enum) String(p *Packet, a AVP) string {
+	number := binary.BigEndian.Uint32(a.Value)
+	value := reflect.ValueOf(s)
+	value.SetUint(uint64(number))
+	method := value.MethodByName("String")
+	if !method.IsValid() {
+		return strconv.Itoa(int(number))
+	}
+	out := method.Call(nil)
+	return out[0].Interface().(string)
+}
+
+type AcctStatusTypeEnum uint32
+
+const (
+	AcctStatusTypeEnumStart         AcctStatusTypeEnum = 1
+	AcctStatusTypeEnumStop          AcctStatusTypeEnum = 2
+	AcctStatusTypeEnumInterimUpdate AcctStatusTypeEnum = 3
+	AcctStatusTypeEnumAccountingOn  AcctStatusTypeEnum = 7
+	AcctStatusTypeEnumAccountingOff AcctStatusTypeEnum = 8
+)
+
+func (e AcctStatusTypeEnum) String() string {
+	switch e {
+	case AcctStatusTypeEnumStart:
+		return "Start"
+	case AcctStatusTypeEnumStop:
+		return "Stop"
+	case AcctStatusTypeEnumInterimUpdate:
+		return "InterimUpdate"
+	case AcctStatusTypeEnumAccountingOn:
+		return "AccountingOn"
+	case AcctStatusTypeEnumAccountingOff:
+		return "AccountingOff"
+	}
+	return "unknow code " + strconv.Itoa(int(e))
 }
