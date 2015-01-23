@@ -143,13 +143,13 @@ type avpUint32Enum struct {
 }
 
 func (s avpUint32Enum) Value(p *Packet, a AVP) interface{} {
-	value := reflect.ValueOf(s)
+	value := reflect.New(reflect.TypeOf(s.t)).Elem()
 	value.SetUint(uint64(binary.BigEndian.Uint32(a.Value)))
 	return value.Interface()
 }
 func (s avpUint32Enum) String(p *Packet, a AVP) string {
 	number := binary.BigEndian.Uint32(a.Value)
-	value := reflect.ValueOf(s)
+	value := reflect.New(reflect.TypeOf(s.t)).Elem()
 	value.SetUint(uint64(number))
 	method := value.MethodByName("String")
 	if !method.IsValid() {
