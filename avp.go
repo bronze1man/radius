@@ -16,6 +16,14 @@ type AVP struct {
 	Value []byte
 }
 
+func (a AVP) Copy() AVP {
+	value := make([]byte, len(a.Value))
+	copy(value, a.Value)
+	return AVP{
+		Type:  a.Type,
+		Value: a.Value,
+	}
+}
 func (a AVP) Encode(b []byte) (n int, err error) {
 	fullLen := len(a.Value) + 2 //type and length
 	if fullLen > 255 || fullLen < 2 {
@@ -37,10 +45,6 @@ func (a AVP) String() string {
 
 func (a AVP) StringWithPacket(p *Packet) string {
 	return "AVP type: " + a.Type.String() + " " + getAttributeTypeDesc(a.Type).dataType.String(p, a)
-}
-
-func (a AVP) IsZero() bool {
-	return int(a.Type) == 0
 }
 
 type avpDataType interface {
@@ -159,6 +163,28 @@ func (s avpUint32Enum) String(p *Packet, a AVP) string {
 	return out[0].Interface().(string)
 }
 
+var avpEapMessage avpEapMessaget
+
+type avpEapMessaget struct{}
+
+func (s avpEapMessaget) Value(p *Packet, a AVP) interface{} {
+	eap, err := EapDecode(a.Value)
+	if err != nil {
+		//TODO error handle
+		fmt.Println("EapDecode fail ", err)
+		return nil
+	}
+	return eap
+
+}
+func (s avpEapMessaget) String(p *Packet, a AVP) string {
+	eap := s.Value(p, a)
+	if eap == nil {
+		return "nil"
+	}
+	return eap.(*EapPacket).String()
+}
+
 type AcctStatusTypeEnum uint32
 
 const (
@@ -181,6 +207,99 @@ func (e AcctStatusTypeEnum) String() string {
 		return "AccountingOn"
 	case AcctStatusTypeEnumAccountingOff:
 		return "AccountingOff"
+	}
+	return "unknow code " + strconv.Itoa(int(e))
+}
+
+type NASPortTypeEnum uint32
+
+// TODO finish it
+const (
+	NASPortTypeEnumAsync            NASPortTypeEnum = 0
+	NASPortTypeEnumSync             NASPortTypeEnum = 1
+	NASPortTypeEnumISDNSync         NASPortTypeEnum = 2
+	NASPortTypeEnumISDNSyncV120     NASPortTypeEnum = 3
+	NASPortTypeEnumISDNSyncV110     NASPortTypeEnum = 4
+	NASPortTypeEnumVirtual          NASPortTypeEnum = 5
+	NASPortTypeEnumPIAFS            NASPortTypeEnum = 6
+	NASPortTypeEnumHDLCClearChannel NASPortTypeEnum = 7
+	NASPortTypeEnumEthernet         NASPortTypeEnum = 15
+	NASPortTypeEnumCable            NASPortTypeEnum = 17
+)
+
+func (e NASPortTypeEnum) String() string {
+	switch e {
+	case NASPortTypeEnumAsync:
+		return "Async"
+	case NASPortTypeEnumSync:
+		return "Sync"
+	case NASPortTypeEnumISDNSync:
+		return "ISDNSync"
+	case NASPortTypeEnumISDNSyncV120:
+		return "ISDNSyncV120"
+	case NASPortTypeEnumISDNSyncV110:
+		return "ISDNSyncV110"
+	case NASPortTypeEnumVirtual:
+		return "Virtual"
+	case NASPortTypeEnumPIAFS:
+		return "PIAFS"
+	case NASPortTypeEnumHDLCClearChannel:
+		return "HDLCClearChannel"
+	case NASPortTypeEnumEthernet:
+		return "Ethernet"
+	case NASPortTypeEnumCable:
+		return "Cable"
+	}
+	return "unknow code " + strconv.Itoa(int(e))
+}
+
+type ServiceTypeEnum uint32
+
+// TODO finish it
+const (
+	ServiceTypeEnumLogin          ServiceTypeEnum = 1
+	ServiceTypeEnumFramed         ServiceTypeEnum = 2
+	ServiceTypeEnumCallbackLogin  ServiceTypeEnum = 3
+	ServiceTypeEnumCallbackFramed ServiceTypeEnum = 4
+	ServiceTypeEnumOutbound       ServiceTypeEnum = 5
+)
+
+func (e ServiceTypeEnum) String() string {
+	switch e {
+	case ServiceTypeEnumLogin:
+		return "Login"
+	case ServiceTypeEnumFramed:
+		return "Framed"
+	case ServiceTypeEnumCallbackLogin:
+		return "CallbackLogin"
+	case ServiceTypeEnumCallbackFramed:
+		return "CallbackFramed"
+	case ServiceTypeEnumOutbound:
+		return "Outbound"
+	}
+	return "unknow code " + strconv.Itoa(int(e))
+}
+
+type AcctTerminateCauseEnum uint32
+
+// TODO finish it
+const (
+	AcctTerminateCauseEnumUserRequest AcctTerminateCauseEnum = 1
+	AcctTerminateCauseEnumLostCarrier AcctTerminateCauseEnum = 2
+	AcctTerminateCauseEnumLostService AcctTerminateCauseEnum = 3
+	AcctTerminateCauseEnumIdleTimeout AcctTerminateCauseEnum = 4
+)
+
+func (e AcctTerminateCauseEnum) String() string {
+	switch e {
+	case AcctTerminateCauseEnumUserRequest:
+		return "UserRequest"
+	case AcctTerminateCauseEnumLostCarrier:
+		return "LostCarrier"
+	case AcctTerminateCauseEnumLostService:
+		return "LostService"
+	case AcctTerminateCauseEnumIdleTimeout:
+		return "IdleTimeout"
 	}
 	return "unknow code " + strconv.Itoa(int(e))
 }

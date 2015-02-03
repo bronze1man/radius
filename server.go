@@ -56,6 +56,7 @@ func (s *Server) ListenAndServe() error {
 			return err
 		}
 		go func(p []byte, addr net.Addr) {
+			//fmt.Printf("DecodePacket %#v\n",p)
 			pac, err := DecodePacket(s.secret, p)
 			if err != nil {
 				fmt.Println("[pac.Decode]", err)
