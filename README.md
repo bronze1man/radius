@@ -1,8 +1,13 @@
 a golang radius library
 =============================
+[![Build Status](https://travis-ci.org/bronze1man/radius.svg)](https://travis-ci.org/bronze1man/radius)
 [![GoDoc](https://godoc.org/github.com/bronze1man/radius?status.svg)](https://godoc.org/github.com/bronze1man/radius)
 [![docs examples](https://sourcegraph.com/api/repos/github.com/bronze1man/radius/badges/docs-examples.png)](https://sourcegraph.com/github.com/bronze1man/radius)
 [![Total views](https://sourcegraph.com/api/repos/github.com/bronze1man/radius/counters/views.png)](https://sourcegraph.com/github.com/bronze1man/radius)
+[![GitHub issues](https://img.shields.io/github/issues/bronze1man/radius.svg)](https://github.com/bronze1man/radius/issues)
+[![GitHub stars](https://img.shields.io/github/stars/bronze1man/radius.svg)](https://github.com/bronze1man/radius/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/bronze1man/radius.svg)](https://github.com/bronze1man/radius/network)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/bronze1man/radius/blob/master/LICENSE)
 
 This project forks from https://github.com/jessta/radius
 
@@ -74,4 +79,5 @@ func main() {
 
 ### TODO
 * avpEapMessaget.Value error handle.
-* implement eap-MSCHAPV2 server side code.
+* implement eap-MSCHAPV2 server side.
+* implement radius client side.
