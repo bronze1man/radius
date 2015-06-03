@@ -53,10 +53,22 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 
 func main() {
 	s := radius.NewServer(":1812", "sEcReT", radiusService{})
-	fmt.Println("waiting for packets...")
-	err := s.ListenAndServe()
-	if err != nil {
-		panic(err)
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	errChan := make(chan error)
+	go func() {
+		fmt.Println("waiting for packets...")
+		err := s.ListenAndServe()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+	select {
+	case <-signalChan:
+		log.Println("stopping server...")
+		s.Stop()
+	case err := <-errChan:
+		log.Println("[ERR] %v", err.Error())
 	}
 }
 ```
