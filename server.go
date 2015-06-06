@@ -3,15 +3,19 @@ package radius
 import (
 	"fmt"
 	"net"
+	"sync"
+	"time"
 )
 
 const AUTH_PORT = 1812
 const ACCOUNTING_PORT = 1813
 
 type Server struct {
-	addr    string
-	secret  string
-	service Service
+	addr      string
+	secret    string
+	service   Service
+	ch        chan struct{}
+	waitGroup *sync.WaitGroup
 	//services map[string]Service
 }
 
@@ -27,10 +31,16 @@ func (p *PasswordService) Authenticate(request *Packet) (*Packet, error) {
 	npac.AVPs = append(npac.AVPs, AVP{Type: ReplyMessage, Value: []byte("you dick!")})
 	return npac, nil
 }
+
+// NewServer return a new Server given a addr, secret, and service
 func NewServer(addr string, secret string, service Service) *Server {
-	return &Server{addr: addr,
-		secret:  secret,
-		service: service}
+	s := &Server{addr: addr,
+		secret:    secret,
+		service:   service,
+		ch:        make(chan struct{}),
+		waitGroup: &sync.WaitGroup{},
+	}
+	return s
 }
 
 /*
@@ -39,6 +49,7 @@ func (s *Server) RegisterService(serviceAddr string, handler Service) {
 }
 */
 
+// ListenAndServe listen on the UDP network address
 func (s *Server) ListenAndServe() error {
 	addr, err := net.ResolveUDPAddr("udp", s.addr)
 	if err != nil {
@@ -48,14 +59,27 @@ func (s *Server) ListenAndServe() error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 
 	for {
+		select {
+		case <-s.ch:
+			return nil
+		default:
+		}
+		conn.SetDeadline(time.Now().Add(2 * time.Second))
 		b := make([]byte, 4096)
 		n, addr, err := conn.ReadFrom(b)
 		if err != nil {
+			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+				continue
+			}
 			return err
 		}
+
+		s.waitGroup.Add(1)
 		go func(p []byte, addr net.Addr) {
+			defer s.waitGroup.Done()
 			//fmt.Printf("DecodePacket %#v\n",p)
 			pac, err := DecodePacket(s.secret, p)
 			if err != nil {
@@ -70,5 +94,10 @@ func (s *Server) ListenAndServe() error {
 			}
 		}(b[:n], addr)
 	}
-	return nil
+}
+
+// Stop will stop the server
+func (s *Server) Stop() {
+	close(s.ch)
+	s.waitGroup.Wait()
 }
