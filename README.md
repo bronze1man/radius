@@ -52,7 +52,16 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 }
 
 func main() {
-	s := radius.NewServer(":1812", "sEcReT", radiusService{})
+	s := radius.NewServer(":1812", "secret", radiusService{})
+
+	// or you can convert it to a server that accept request 
+	// from some host with different secret
+	// cls := radius.NewClientList([]radius.Client{
+	// 		radius.NewClient("127.0.0.1", "secret1"),
+	// 		radius.NewClient("10.10.10.10", "secret2"),
+	// })
+	// s.WithClientList(cls)
+
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	errChan := make(chan error)
