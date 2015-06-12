@@ -16,7 +16,7 @@ type Server struct {
 	service   Service
 	ch        chan struct{}
 	waitGroup *sync.WaitGroup
-	//services map[string]Service
+	cl        *ClientList
 }
 
 type Service interface {
@@ -41,6 +41,11 @@ func NewServer(addr string, secret string, service Service) *Server {
 		waitGroup: &sync.WaitGroup{},
 	}
 	return s
+}
+
+// WithClientList set a list of clients that have it's own secret
+func (s *Server) WithClientList(cl *ClientList) {
+	s.cl = cl
 }
 
 /*
@@ -80,8 +85,20 @@ func (s *Server) ListenAndServe() error {
 		s.waitGroup.Add(1)
 		go func(p []byte, addr net.Addr) {
 			defer s.waitGroup.Done()
-			//fmt.Printf("DecodePacket %#v\n",p)
-			pac, err := DecodePacket(s.secret, p)
+			var secret = s.secret
+
+			if s.cl != nil {
+				host, _, err := net.SplitHostPort(addr.String())
+				if err != nil {
+					fmt.Println("[pac.Host]", err)
+					return
+				}
+				if cl := s.cl.Get(host); cl != nil {
+					secret = cl.GetSecret()
+				}
+			}
+
+			pac, err := DecodePacket(secret, p)
 			if err != nil {
 				fmt.Println("[pac.Decode]", err)
 				return
