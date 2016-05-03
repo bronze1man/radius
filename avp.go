@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"reflect"
 	"strconv"
@@ -105,8 +104,7 @@ func (s avpPasswordt) Value(p *Packet, a AVP) interface{} {
 	if p == nil {
 		return ""
 	}
-	log.Printf("value: %q [%d]\n", a.Value, len(a.Value))
-	log.Printf("secret: %q\n", p.Secret)
+
 	buff := a.Value
 	pass := make([]byte, 0)
 	last := make([]byte, 16)
