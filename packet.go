@@ -323,7 +323,7 @@ func (p *Packet) GetAcctTotalOutputOctets() uint64 {
 	}
 	avp = p.GetAVP(AcctOutputGigawords)
 	if avp != nil {
-		out += uint64(avp.Decode(p).(uint32))*2 ^ 32
+		out += uint64(avp.Decode(p).(uint32)) << 32
 	}
 	return out
 }
@@ -336,7 +336,7 @@ func (p *Packet) GetAcctTotalInputOctets() uint64 {
 	}
 	avp = p.GetAVP(AcctInputGigawords)
 	if avp != nil {
-		out += uint64(avp.Decode(p).(uint32))*2 ^ 32
+		out += uint64(avp.Decode(p).(uint32)) << 32
 	}
 	return out
 }
