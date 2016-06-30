@@ -9,8 +9,7 @@ a golang radius library
 [![GitHub forks](https://img.shields.io/github/forks/bronze1man/radius.svg)](https://github.com/bronze1man/radius/network)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/bronze1man/radius/blob/master/LICENSE)
 
-This project forks from https://github.com/jessta/radius
-             forks from https://github.com/bronze1man/radius
+This project forks from https://github.com/bronze1man/radius
 
 ### document
 * http://godoc.org/github.com/bronze1man/radius
