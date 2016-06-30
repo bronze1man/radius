@@ -1,13 +1,8 @@
 package radius
 
 import (
-	//"bytes"
 	"encoding/binary"
-	//"errors"
 	"fmt"
-	//"net"
-	//"reflect"
-	//"strconv"
 )
 
 // Vendor
@@ -34,5 +29,21 @@ func (s avpVendort) String(p *Packet, a AVP) string {
 	vsa.Value = make([]byte, value[5]-2)
 	copy(vsa.Value, value[6:])
 
-	return fmt.Sprintf("{Vendor: %d, Type: %d, Value: %#v}", vsa.Vendor, vsa.Type, vsa.Value)
+	return fmt.Sprintf("{Vendor: %d, Attr: %d, Value: %#v}", vsa.Vendor, vsa.Type, vsa.Value)
+}
+
+// encode VSA attribute under Vendor-Specific AVP
+func (vsa VSA) ToAVP() AVP {
+	vsa_len := len(vsa.Value)
+	// vendor id (4) + attr type (1) + attr len (1)
+	// TODO - for WiMAX vendor there is extra byte in VSA header
+	vsa_value := make([]byte, vsa_len+6)
+	binary.BigEndian.PutUint32(vsa_value[0:4], vsa.Vendor)
+	vsa_value[4] = uint8(vsa.Type)
+	vsa_value[5] = uint8(vsa_len + 2)
+	copy(vsa_value[6:], vsa.Value)
+
+	avp := AVP{Type: VendorSpecific, Value: vsa_value}
+
+	return avp
 }

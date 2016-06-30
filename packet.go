@@ -37,6 +37,7 @@ func (p *Packet) Copy() *Packet {
 }
 
 //此方法保证不修改包的内容
+//This method does not modify the contents of the package to ensure
 func (p *Packet) Encode() (b []byte, err error) {
 	p = p.Copy()
 	p.SetAVP(AVP{
@@ -50,11 +51,13 @@ func (p *Packet) Encode() (b []byte, err error) {
 		}
 	}
 	//TODO request的时候重新计算密码
+	// When the password request recalculation
 	b, err = p.encodeNoHash()
 	if err != nil {
 		return
 	}
 	//计算Message-Authenticator,Message-Authenticator被放在最后面
+	//Calculation Message-Authenticator, Message-Authenticator is placed in the rearmost
 	hasher := hmac.New(crypto.MD5.New, []byte(p.Secret))
 	hasher.Write(b)
 	copy(b[len(b)-16:len(b)], hasher.Sum(nil))
@@ -109,18 +112,6 @@ func (p *Packet) HasAVP(attrType AttributeType) bool {
 	return false
 }
 
-/*
-func (p *Packet) Attributes(attrType AttributeType) []*AVP {
-	ret := []*AVP(nil)
-	for i, _ := range p.AVPs {
-		if p.AVPs[i].Type == attrType {
-			ret = append(ret, &p.AVPs[i])
-		}
-	}
-	return ret
-}
-*/
-
 //get one avp
 func (p *Packet) GetAVP(attrType AttributeType) *AVP {
 	for i := range p.AVPs {
@@ -141,7 +132,12 @@ func (p *Packet) AddAVP(avp AVP) {
 	p.AVPs = append(p.AVPs, avp)
 }
 
+func (p *Packet) AddVSA(vsa VSA) {
+	p.AddAVP(vsa.ToAVP())
+}
+
 //删除一个AVP
+//Delete a AVP
 func (p *Packet) DeleteAVP(avp *AVP) {
 	for i := range p.AVPs {
 		if &(p.AVPs[i]) == avp {
@@ -169,39 +165,6 @@ func (p *Packet) DeleteOneType(attrType AttributeType) {
 	}
 	return
 }
-
-/*
-func (p *Packet) Valid() bool {
-	switch p.Code {
-	case AccessRequest:
-		if !(p.Has(NASIPAddress) || p.Has(NASIdentifier)) {
-			return false
-		}
-
-		if p.Has(CHAPPassword) && p.Has(UserPassword) {
-			return false
-		}
-		return true
-	case AccessAccept:
-		return true
-	case AccessReject:
-		return true
-	case AccountingRequest:
-		return true
-	case AccountingResponse:
-		return true
-	case AccessChallenge:
-		return true
-	case StatusServer:
-		return true
-	case StatusClient:
-		return true
-	case Reserved:
-		return true
-	}
-	return true
-}
-*/
 
 func (p *Packet) Reply() *Packet {
 	pac := new(Packet)
@@ -240,6 +203,7 @@ func DecodePacket(Secret string, buf []byte) (p *Packet, err error) {
 		b = b[length:]
 	}
 	//验证Message-Authenticator,并且通过测试验证此处算法是正确的
+	//Verify Message-Authenticator, and tested to verify the algorithm is correct here
 	err = p.checkMessageAuthenticator()
 	if err != nil {
 		return p, err
@@ -248,6 +212,7 @@ func DecodePacket(Secret string, buf []byte) (p *Packet, err error) {
 }
 
 //如果没有MessageAuthenticator也算通过
+//If no Message Authenticator can be considered by
 func (p *Packet) checkMessageAuthenticator() (err error) {
 	Authenticator := p.GetAVP(MessageAuthenticator)
 	if Authenticator == nil {
