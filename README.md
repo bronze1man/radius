@@ -9,7 +9,7 @@ a golang radius library
 [![GitHub forks](https://img.shields.io/github/forks/bronze1man/radius.svg)](https://github.com/bronze1man/radius/network)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/bronze1man/radius/blob/master/LICENSE)
 
-This project forks from https://github.com/jessta/radius
+This project forks from https://github.com/bronze1man/radius
 
 ### document
 * http://godoc.org/github.com/bronze1man/radius
@@ -32,17 +32,19 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 	npac := request.Reply()
 	switch request.Code {
 	case radius.AccessRequest:
-	    // check username and password
+		// check username and password
 		if request.GetUsername() == "a" && request.GetPassword() == "a" {
 			npac.Code = radius.AccessAccept
+			// add Vendor-specific attribute - Vendor Cisco (code 9) Attribute h323-remote-address (code 23)
+			npac.AddVSA( radius.VSA{Vendor: 9, Type: 23, Value: []byte("10.20.30.40")} )
 			return npac
 		} else {
 			npac.Code = radius.AccessReject
-			npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte("you dick!")})
+			npac.AddAVP( radius.AVP{Type: radius.ReplyMessage, Value: []byte("you dick!")} )
 			return npac
 		}
 	case radius.AccountingRequest:
-	    // accounting start or end
+		// accounting start or end
 		npac.Code = radius.AccountingResponse
 		return npac
 	default:
@@ -54,7 +56,7 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 func main() {
 	s := radius.NewServer(":1812", "secret", radiusService{})
 
-	// or you can convert it to a server that accept request 
+	// or you can convert it to a server that accept request
 	// from some host with different secret
 	// cls := radius.NewClientList([]radius.Client{
 	// 		radius.NewClient("127.0.0.1", "secret1"),
