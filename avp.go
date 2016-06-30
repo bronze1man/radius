@@ -1,13 +1,7 @@
 package radius
 
 import (
-	"bytes"
-	"crypto"
-	"encoding/binary"
 	"errors"
-	"fmt"
-	"net"
-	"reflect"
 	"strconv"
 )
 
@@ -52,138 +46,7 @@ type avpDataType interface {
 	String(p *Packet, a AVP) string
 }
 
-var avpString avpStringt
-
-type avpStringt struct{}
-
-func (s avpStringt) Value(p *Packet, a AVP) interface{} {
-	return string(a.Value)
-}
-func (s avpStringt) String(p *Packet, a AVP) string {
-	return string(a.Value)
-}
-
-var avpIP avpIPt
-
-type avpIPt struct{}
-
-func (s avpIPt) Value(p *Packet, a AVP) interface{} {
-	return net.IP(a.Value)
-}
-func (s avpIPt) String(p *Packet, a AVP) string {
-	return net.IP(a.Value).String()
-}
-
-var avpUint32 avpUint32t
-
-type avpUint32t struct{}
-
-func (s avpUint32t) Value(p *Packet, a AVP) interface{} {
-	return uint32(binary.BigEndian.Uint32(a.Value))
-}
-func (s avpUint32t) String(p *Packet, a AVP) string {
-	return strconv.Itoa(int(binary.BigEndian.Uint32(a.Value)))
-}
-
-var avpBinary avpBinaryt
-
-type avpBinaryt struct{}
-
-func (s avpBinaryt) Value(p *Packet, a AVP) interface{} {
-	return a.Value
-}
-func (s avpBinaryt) String(p *Packet, a AVP) string {
-	return fmt.Sprintf("%#v", a.Value)
-}
-
-var avpPassword avpPasswordt
-
-type avpPasswordt struct{}
-
-func (s avpPasswordt) Value(p *Packet, a AVP) interface{} {
-	if p == nil {
-		return ""
-	}
-	//Decode password. XOR against md5(p.server.secret+Authenticator)
-	secAuth := append([]byte(nil), []byte(p.Secret)...)
-	secAuth = append(secAuth, p.Authenticator[:]...)
-	m := crypto.Hash(crypto.MD5).New()
-	m.Write(secAuth)
-	md := m.Sum(nil)
-	pass := append([]byte(nil), a.Value...)
-	if len(pass) == 16 {
-		for i := 0; i < len(pass); i++ {
-			pass[i] = pass[i] ^ md[i]
-		}
-		pass = bytes.TrimRight(pass, string([]rune{0}))
-		return string(pass)
-	}
-	fmt.Println("[GetPassword] warning: not implemented for password > 16")
-	return ""
-}
-func (s avpPasswordt) String(p *Packet, a AVP) string {
-	return s.Value(p, a).(string)
-}
-
-type avpUint32EnumList []string
-
-func (s avpUint32EnumList) Value(p *Packet, a AVP) interface{} {
-	return uint32(binary.BigEndian.Uint32(a.Value))
-}
-func (s avpUint32EnumList) String(p *Packet, a AVP) string {
-	number := int(binary.BigEndian.Uint32(a.Value))
-	if number > len(s) {
-		return "unknow " + strconv.Itoa(number)
-	}
-	out := s[number]
-	if out == "" {
-		return "unknow " + strconv.Itoa(number)
-	}
-	return out
-}
-
-type avpUint32Enum struct {
-	t interface{} // t should from a uint32 type like AcctStatusTypeEnum
-}
-
-func (s avpUint32Enum) Value(p *Packet, a AVP) interface{} {
-	value := reflect.New(reflect.TypeOf(s.t)).Elem()
-	value.SetUint(uint64(binary.BigEndian.Uint32(a.Value)))
-	return value.Interface()
-}
-func (s avpUint32Enum) String(p *Packet, a AVP) string {
-	number := binary.BigEndian.Uint32(a.Value)
-	value := reflect.New(reflect.TypeOf(s.t)).Elem()
-	value.SetUint(uint64(number))
-	method := value.MethodByName("String")
-	if !method.IsValid() {
-		return strconv.Itoa(int(number))
-	}
-	out := method.Call(nil)
-	return out[0].Interface().(string)
-}
-
-var avpEapMessage avpEapMessaget
-
-type avpEapMessaget struct{}
-
-func (s avpEapMessaget) Value(p *Packet, a AVP) interface{} {
-	eap, err := EapDecode(a.Value)
-	if err != nil {
-		//TODO error handle
-		fmt.Println("EapDecode fail ", err)
-		return nil
-	}
-	return eap
-
-}
-func (s avpEapMessaget) String(p *Packet, a AVP) string {
-	eap := s.Value(p, a)
-	if eap == nil {
-		return "nil"
-	}
-	return eap.(*EapPacket).String()
-}
+// enums:
 
 type AcctStatusTypeEnum uint32
 
