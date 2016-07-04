@@ -224,7 +224,7 @@ var attributeTypeMap = [256]attributeTypeDesc{
 	FramedIPXNetwork:       {"FramedIPXNetwork", avpIP},
 	State:                  {"State", avpString},
 	Class:                  {"Class", avpString},
-	VendorSpecific:         {"VendorSpecific", avpBinary},
+	VendorSpecific:         {"VendorSpecific", avpVendor},
 	SessionTimeout:         {"SessionTimeout", avpUint32},
 	IdleTimeout:            {"IdleTimeout", avpUint32},
 	TerminationAction:      {"TerminationAction", avpUint32},
