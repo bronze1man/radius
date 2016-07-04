@@ -1,4 +1,4 @@
-a golang radius library
+Radius
 =============================
 [![Build Status](https://travis-ci.org/bronze1man/radius.svg)](https://travis-ci.org/bronze1man/radius)
 [![GoDoc](https://godoc.org/github.com/bronze1man/radius?status.svg)](https://godoc.org/github.com/bronze1man/radius)
@@ -9,13 +9,13 @@ a golang radius library
 [![GitHub forks](https://img.shields.io/github/forks/bronze1man/radius.svg)](https://github.com/bronze1man/radius/network)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/bronze1man/radius/blob/master/LICENSE)
 
-This project forks from https://github.com/jessta/radius
+A golang radius library. This project forks from [jeesta/radius](https://github.com/jessta/radius)
 
-### document
+### Documentation
 * http://godoc.org/github.com/bronze1man/radius
 * http://en.wikipedia.org/wiki/RADIUS
 
-### example
+### Example
 ```go
 package main
 
@@ -37,20 +37,17 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 			npac.Code = radius.AccessAccept
 			// add Vendor-specific attribute - Vendor Cisco (code 9) Attribute h323-remote-address (code 23)
 			npac.AddVSA( radius.VSA{Vendor: 9, Type: 23, Value: []byte("10.20.30.40")} )
-			return npac
 		} else {
 			npac.Code = radius.AccessReject
 			npac.AddAVP( radius.AVP{Type: radius.ReplyMessage, Value: []byte("you dick!")} )
-			return npac
 		}
 	case radius.AccountingRequest:
 		// accounting start or end
 		npac.Code = radius.AccountingResponse
-		return npac
 	default:
 		npac.Code = radius.AccessAccept
-		return npac
 	}
+	return npac
 }
 
 func main() {
@@ -84,15 +81,15 @@ func main() {
 }
 ```
 
-### implemented
-* a radius server can handle AccessRequest request from strongswan with ikev1-xauth-psk
-* a radius server can handle AccountingRequest request from strongswan with ikev1-xauth-psk
+### Implemented
+* A radius server can handle AccessRequest request from strongswan with ikev1-xauth-psk
+* A radius server can handle AccountingRequest request from strongswan with ikev1-xauth-psk
 
-### notice
-* A radius client has not been implement.
+### Notice
+* A radius client has not yet been implement.
 * It works , but it is not stable.
 
-### reference
+### Reference
 * EAP MS-CHAPv2 packet format 								http://tools.ietf.org/id/draft-kamath-pppext-eap-mschapv2-01.txt
 * EAP MS-CHAPv2 											https://tools.ietf.org/html/rfc2759
 * RADIUS Access-Request part      							https://tools.ietf.org/html/rfc2865
@@ -102,5 +99,5 @@ func main() {
 
 ### TODO
 * avpEapMessaget.Value error handle.
-* implement eap-MSCHAPV2 server side.
-* implement radius client side.
+* Implement eap-MSCHAPV2 server side.
+* Implement radius client side.
