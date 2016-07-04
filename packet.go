@@ -67,6 +67,8 @@ func (p *Packet) Encode() (b []byte, err error) {
 	// here only handle response part.
 	switch p.Code {
 	case AccessRequest:
+	case DisconnectRequest, DisconnectAccept, DisconnectReject:
+		fallthrough
 	case AccessAccept, AccessReject, AccessChallenge, AccountingRequest, AccountingResponse:
 		//rfc2865 page 15 Response Authenticator
 		//rfc2866 page 6 Response Authenticator
