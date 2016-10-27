@@ -22,24 +22,28 @@ package main
 import (
 	"fmt"
 	"github.com/bronze1man/radius"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type radiusService struct{}
 
 func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
-    // a pretty print of the request.
+	// a pretty print of the request.
 	fmt.Printf("[Authenticate] %s\n", request.String())
 	npac := request.Reply()
 	switch request.Code {
 	case radius.AccessRequest:
 		// check username and password
-		if request.GetUsername() == "a" && request.GetPassword() == "a" {
+		if request.GetUsername() == "username" && request.GetPassword() == "password" {
 			npac.Code = radius.AccessAccept
-			// add Vendor-specific attribute - Vendor Cisco (code 9) Attribute h323-remote-address (code 23)
-			npac.AddVSA( radius.VSA{Vendor: 9, Type: 23, Value: []byte("10.20.30.40")} )
+			// Reply with a RADIUS Attribute.
+			npac.AddAVP(radius.AVP{Type: radius.ReplyMessage, Value: []byte("Welcome!")})
 		} else {
 			npac.Code = radius.AccessReject
-			npac.AddAVP( radius.AVP{Type: radius.ReplyMessage, Value: []byte("you dick!")} )
+			npac.AddAVP(radius.AVP{Type: radius.ReplyMessage, Value: []byte("Get lost!")})
 		}
 	case radius.AccountingRequest:
 		// accounting start or end
@@ -52,12 +56,13 @@ func (p radiusService) RadiusHandle(request *radius.Packet) *radius.Packet {
 
 func main() {
 	s := radius.NewServer(":1812", "secret", radiusService{})
+	// Test using Radtest: "$ radtest username password localhost 10 secret"
 
 	// or you can convert it to a server that accept request
 	// from some host with different secret
 	// cls := radius.NewClientList([]radius.Client{
-	// 		radius.NewClient("127.0.0.1", "secret1"),
-	// 		radius.NewClient("10.10.10.10", "secret2"),
+	//      radius.NewClient("127.0.0.1", "secret1"),
+	//      radius.NewClient("10.10.10.10", "secret2"),
 	// })
 	// s.WithClientList(cls)
 
