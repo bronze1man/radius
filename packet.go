@@ -185,6 +185,9 @@ func (p *Packet) Send(c net.PacketConn, addr net.Addr) error {
 }
 
 func DecodePacket(Secret string, buf []byte) (p *Packet, err error) {
+	if len(buf) < 20 {
+		return nil, errors.New("invalid length")
+	}
 	p = &Packet{Secret: Secret}
 	p.Code = PacketCode(buf[0])
 	p.Identifier = buf[1]
