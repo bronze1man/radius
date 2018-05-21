@@ -285,12 +285,25 @@ func (e ServiceTypeEnum) String() string {
 
 type AcctTerminateCauseEnum uint32
 
-// TODO finish it
 const (
-	AcctTerminateCauseEnumUserRequest AcctTerminateCauseEnum = 1
-	AcctTerminateCauseEnumLostCarrier AcctTerminateCauseEnum = 2
-	AcctTerminateCauseEnumLostService AcctTerminateCauseEnum = 3
-	AcctTerminateCauseEnumIdleTimeout AcctTerminateCauseEnum = 4
+	AcctTerminateCauseEnumUserRequest        AcctTerminateCauseEnum = 1
+	AcctTerminateCauseEnumLostCarrier        AcctTerminateCauseEnum = 2
+	AcctTerminateCauseEnumLostService        AcctTerminateCauseEnum = 3
+	AcctTerminateCauseEnumIdleTimeout        AcctTerminateCauseEnum = 4
+	AcctTerminateCauseEnumSessionTimout      AcctTerminateCauseEnum = 5
+	AcctTerminateCauseEnumAdminReset         AcctTerminateCauseEnum = 6
+	AcctTerminateCauseEnumAdminReboot        AcctTerminateCauseEnum = 7
+	AcctTerminateCauseEnumPortError          AcctTerminateCauseEnum = 8
+	AcctTerminateCauseEnumNASError           AcctTerminateCauseEnum = 9
+	AcctTerminateCauseEnumNASRequest         AcctTerminateCauseEnum = 10
+	AcctTerminateCauseEnumNASReboot          AcctTerminateCauseEnum = 11
+	AcctTerminateCauseEnumPortUnneeded       AcctTerminateCauseEnum = 12
+	AcctTerminateCauseEnumPortPreempted      AcctTerminateCauseEnum = 13
+	AcctTerminateCauseEnumPortSuspended      AcctTerminateCauseEnum = 14
+	AcctTerminateCauseEnumServiceUnavailable AcctTerminateCauseEnum = 15
+	AcctTerminateCauseEnumCallbkack          AcctTerminateCauseEnum = 16
+	AcctTerminateCauseEnumUserError          AcctTerminateCauseEnum = 17
+	AcctTerminateCauseEnumHostRequest        AcctStatusTypeEnum     = 18
 )
 
 func (e AcctTerminateCauseEnum) String() string {
@@ -303,6 +316,34 @@ func (e AcctTerminateCauseEnum) String() string {
 		return "LostService"
 	case AcctTerminateCauseEnumIdleTimeout:
 		return "IdleTimeout"
+	case AcctTerminateCauseEnumSessionTimout:
+		return "SessionTimeout"
+	case AcctTerminateCauseEnumAdminReset:
+		return "AdminReset"
+	case AcctTerminateCauseEnumAdminReboot:
+		return "AdminReboot"
+	case AcctTerminateCauseEnumPortError:
+		return "PortError"
+	case AcctTerminateCauseEnumNASError:
+		return "NASError"
+	case AcctTerminateCauseEnumNASRequest:
+		return "NASRequest"
+	case AcctTerminateCauseEnumNASReboot:
+		return "NASReboot"
+	case AcctTerminateCauseEnumPortUnneeded:
+		return "PortUnneeded"
+	case AcctTerminateCauseEnumPortPreempted:
+		return "PortPreempted"
+	case AcctTerminateCauseEnumPortSuspended:
+		return "PortSuspended"
+	case AcctTerminateCauseEnumServiceUnavailable:
+		return "ServiceUnavailable"
+	case AcctTerminateCauseEnumCallbkack:
+		return "Callback"
+	case AcctTerminateCauseEnumUserError:
+		return "UserError"
+	case AcctTerminateCauseEnumHostRequest:
+		return "HostRequest"
 	}
 	return "unknow code " + strconv.Itoa(int(e))
 }
