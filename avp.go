@@ -303,7 +303,7 @@ const (
 	AcctTerminateCauseEnumServiceUnavailable AcctTerminateCauseEnum = 15
 	AcctTerminateCauseEnumCallbkack          AcctTerminateCauseEnum = 16
 	AcctTerminateCauseEnumUserError          AcctTerminateCauseEnum = 17
-	AcctTerminateCauseEnumHostRequest        AcctStatusTypeEnum     = 18
+	AcctTerminateCauseEnumHostRequest        AcctTerminateCauseEnum = 18
 )
 
 func (e AcctTerminateCauseEnum) String() string {
