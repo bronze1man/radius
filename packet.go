@@ -335,3 +335,43 @@ func (p *Packet) GetEAPMessage() *EapPacket {
 	}
 	return avp.Decode(p).(*EapPacket)
 }
+
+func (p *Packet) GetFramedIPAddress() (ip net.IP) {
+	avp := p.GetAVP(FramedIPAddress)
+	if avp == nil {
+		return nil
+	}
+	return avp.Decode(p).(net.IP)
+}
+
+func (p *Packet) GetTerminateCause() string {
+	avp := p.GetAVP(AcctTerminateCause)
+	if avp == nil {
+		return ""
+	}
+	return avp.Decode(p).(AcctTerminateCauseEnum).(string)
+}
+
+func (p *Packet) GetCallingStationId() string {
+	avp := p.GetAVP(CallingStationId)
+	if avp == nil {
+		return ""
+	}
+	return avp.Decode(p).(string)
+}
+
+func (p *Packet) GetCalledStationId() string {
+	avp := p.GetAVP(CalledStationId)
+	if avp == nil {
+		return ""
+	}
+	return avp.Decode(p).(string)
+}
+
+func (p *Packet) GetNASPortId() string {
+	avp := p.GetAVP(NASPortId)
+	if avp == nil {
+		return ""
+	}
+	return avp.Decode(p).(string)
+}
