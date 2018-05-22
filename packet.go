@@ -349,7 +349,7 @@ func (p *Packet) GetTerminateCause() string {
 	if avp == nil {
 		return ""
 	}
-	return avp.Decode(p).(AcctTerminateCauseEnum).(string)
+	return avp.Decode(p).(string)
 }
 
 func (p *Packet) GetCallingStationId() string {
