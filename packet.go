@@ -122,6 +122,25 @@ func (p *Packet) GetAVP(attrType AttributeType) *AVP {
 	return nil
 }
 
+//get one vsa
+func (p *Packet) GetVSA(vendor uint32, attr uint8) *VSA {
+	for i := range p.AVPs {
+		if p.AVPs[i].Type == VendorSpecific {
+			a := p.AVPs[i]
+			vsa := new(VSA)
+			value := a.Value
+			vsa.Vendor = binary.BigEndian.Uint32(value[0:4])
+			vsa.Type = uint8(value[4])
+			vsa.Value = make([]byte, value[5]-2)
+			copy(vsa.Value, value[6:])
+			if vsa.Type == attr && vsa.Vendor == vendor {
+				return vsa
+			}
+		}
+	}
+	return nil
+}
+
 //set one avp,remove all other same type
 func (p *Packet) SetAVP(avp AVP) {
 	p.DeleteOneType(avp.Type)
