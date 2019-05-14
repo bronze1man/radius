@@ -20,6 +20,7 @@ type Packet struct {
 	Identifier    uint8
 	Authenticator [16]byte
 	AVPs          []AVP
+	ClientAddr    string
 }
 
 func (p *Packet) Copy() *Packet {
