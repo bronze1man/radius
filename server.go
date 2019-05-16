@@ -103,6 +103,7 @@ func (s *Server) ListenAndServe() error {
 				fmt.Println("[pac.Decode]", err)
 				return
 			}
+			pac.ClientAddr = addr.String()
 
 			npac := s.service.RadiusHandle(pac)
 			err = npac.Send(conn, addr)
