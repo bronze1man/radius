@@ -14,6 +14,7 @@ type Server struct {
 	addr      string
 	secret    string
 	service   Service
+	timeout   time.Duration
 	ch        chan struct{}
 	waitGroup *sync.WaitGroup
 	cl        *ClientList
@@ -54,6 +55,11 @@ func (s *Server) RegisterService(serviceAddr string, handler Service) {
 }
 */
 
+// SetDeadline set connection deadline for each incoming connection
+func (s *Server) SetDeadline(timeout time.Duration) {
+	s.timeout = timeout
+}
+
 // ListenAndServe listen on the UDP network address
 func (s *Server) ListenAndServe() error {
 	addr, err := net.ResolveUDPAddr("udp", s.addr)
@@ -72,7 +78,14 @@ func (s *Server) ListenAndServe() error {
 			return nil
 		default:
 		}
-		conn.SetDeadline(time.Now().Add(2 * time.Second))
+
+		// Default timeout is 2 second for backward compatibility
+		if s.timeout == 0 {
+			conn.SetDeadline(time.Now().Add(2 * time.Second))
+		} else {
+			conn.SetDeadline(time.Now().Add(s.timeout))
+		}
+
 		b := make([]byte, 4096)
 		n, addr, err := conn.ReadFrom(b)
 		if err != nil {
